@@ -342,7 +342,7 @@ plotgasmaps <<- function(MAGPIID, gaskinpath='GasKinMaps',miniimpath='mini-image
     OII3730=gals2class$OII_3730[which(gals2class$MAGPIID==MAGPIID)]
     OII3727=gals2class$OII_3727[which(gals2class$MAGPIID==MAGPIID)]
     OIII=gals2class$OIII_5008[which(gals2class$MAGPIID==MAGPIID)]
-    maxel=which(c(Ha, OII3727, OII3730, OIII)==max(Ha, OII3727, OII3730, OIII,na.rm = T))
+    maxel=which(c(Ha, OII3727, OII3730, OIII)==max(Ha, OII3727, OII3730, OIII, na.rm = T))
     if (length(maxel)==0) {maxel=0}
     if (length(maxel)>1) {maxel=0}
     
@@ -359,8 +359,8 @@ plotgasmaps <<- function(MAGPIID, gaskinpath='GasKinMaps',miniimpath='mini-image
     }
     #if ((reds>0.865)){
     if ((maxel==2) | (maxel==3)) {
-      gasdata$V_GAS$imDat[((gasdata$OII_3730_F$imDat+gasdata$OII_3727_F$imDat)/(gasdata$OII_3730_FERR$imDat+gasdata$OII_3727$imDat))<sncut]=NaN
-      gasdata$SIGMA_GAS$imDat[((gasdata$OII_3730_F$imDat+gasdata$OII_3727_F$imDat)/(gasdata$OII_3730_FERR$imDat+gasdata$OII_3727$imDat))<sncut]=NaN
+      gasdata$V_GAS$imDat[((gasdata$OII_3730_F$imDat+gasdata$OII_3727_F$imDat)/(gasdata$OII_3730_FERR$imDat+gasdata$OII_3727_FERR$imDat))<sncut]=NaN
+      gasdata$SIGMA_GAS$imDat[((gasdata$OII_3730_F$imDat+gasdata$OII_3727_F$imDat)/(gasdata$OII_3730_FERR$imDat+gasdata$OII_3727_FERR$imDat))<sncut]=NaN
     }
     
     #computing default ranges:
