@@ -3,6 +3,15 @@ library(shinyjs)
 library(Rfits)
 library(magicaxis)
 library(jpeg)
+library(rdrop2)
+
+#Paths:
+source('www/paths.R')
+
+drop_auth(rdstoken = tokenfile)
+
+#Loading name of existing files:
+rater_files=drop_dir(output_dir)$name
 
 #Reading CMasher colour scales
 cmscales=readRDS('www/cmr_cmaps.RDS')
@@ -12,19 +21,12 @@ cmscales=readRDS('www/cmr_cmaps.RDS')
 #Selecting galaxies to classify
 #
 ################################################################################
-gals2class=read.csv(file='www/magpiparent_withEL.csv', stringsAsFactors=F)
-
-#ElGISTcat=read.table(file=('www/MAGPI_master_emission_lines.tbl'), header=T)
-#gals2class=merge(gals2class,ElGISTcat[,c(1,5,6,18,23)], by='MAGPIID',all.x=T)
-#write.csv(gals2class,file='www/magpiparent_withEL.csv', row.names=F)
+gals2class=drop_read_csv(file=catalogue_file, stringsAsFactors=F)
 
 #Only loading galaxies for which either the gas or stellar kinematic maps are useful.
 gals2class=gals2class[(gals2class$R50_it > 0.75*gals2class$fwhm_i) & (gals2class$re > 0.75*gals2class$fwhm_r) & (gals2class$mag_it < 26),]
 gals2class=gals2class[!is.na(gals2class$MAGPIID),]
 notclass=gals2class$MAGPIID
-
-#To check specific IDs:
-#gals2class=gals2class[gals2class$MAGPIID=='2304279199' | gals2class$MAGPIID=='1503273048' | gals2class$MAGPIID=='1523197197',]
 
 ################################################################################
 #
@@ -45,8 +47,8 @@ shinyServer(
     
     observeEvent(input$MAGPIteDone, {
       values$MAGPIte <- input$MAGPIte     # if the set MAGPIte button is clicked, save name of person doing the classifying
-      if (file.exists(paste0('outdir/MAGPI_class_', values$MAGPIte, '.csv'))){
-        values$classtable=as.data.frame(read.csv(paste0('outdir/MAGPI_class_', values$MAGPIte, '.csv'), header = TRUE,
+      if (drop_exists(path=paste0(output_dir,'/MAGPI_class_', values$MAGPIte, '.csv'))){
+        values$classtable=as.data.frame(drop_read_csv(paste0(output_dir,'/MAGPI_class_', values$MAGPIte, '.csv'), header = TRUE,
                                                  colClasses = c('character','integer','logical','character','logical','logical','character','character','logical','character','character','logical','character')))
         #Find galaxies that have not yet been classified:
         notclass<<-values$classtable[!values$classtable$EdgeCase & values$classtable$Morph=='0' & !values$classtable$BarFlag & !values$classtable$VisFeatFlag & values$classtable$StellRR=='0' & values$classtable$StellFeat=='0' &
@@ -80,6 +82,7 @@ shinyServer(
         values$StellKinFlag,values$GasRR,values$GasFeat,values$GasKinFlag,values$comment)
       write.csv(values$classtable, file=paste('outdir/MAGPI_class_', values$MAGPIte, '.csv', sep=''), 
                 quote = FALSE, row.names = FALSE)
+      drop_upload(paste('outdir/MAGPI_class_', values$MAGPIte, '.csv', sep=''), path = output_dir)
       #if reached the end of the list, celebrate with a figure!
       if (values$galnum == length(values$classtable[,1])) {
         values$MAGPIID='Done'
@@ -126,11 +129,11 @@ shinyServer(
     output$magpiid=renderText(paste('MAGPIID = ',values$classtable$MAGPIID[values$galnum]))
 
     output$galimage <- renderPlot(expr={
-      plotgalimage(MAGPIID=values$classtable$MAGPIID[values$galnum])
+      plotgalimage(MAGPIID=values$classtable$MAGPIID[values$galnum], miniimpath=miniimpath)
     })
     
     output$plotstelmaps <- renderPlot(expr={
-      plotstelmaps(MAGPIID=values$classtable$MAGPIID[values$galnum],velrange=VelRanges$StelVelRange,sigrange=VelRanges$StelSigRange)
+      plotstelmaps(MAGPIID=values$classtable$MAGPIID[values$galnum],velrange=VelRanges$StelVelRange,sigrange=VelRanges$StelSigRange, miniimpath=miniimpath, stelkinpath=stelkinpath)
     })
     
     observeEvent(input$StelVelRange,{
@@ -147,7 +150,7 @@ shinyServer(
     })
     
     output$plotgasmaps <- renderPlot(expr={
-      plotgasmaps(MAGPIID=values$classtable$MAGPIID[values$galnum],velrange=VelRanges$GasVelRange,sigrange=VelRanges$GasSigRange)
+      plotgasmaps(MAGPIID=values$classtable$MAGPIID[values$galnum],velrange=VelRanges$GasVelRange,sigrange=VelRanges$GasSigRange, gaskinpath=gaskinpath, miniimpath = miniimpath)
     })
     
     observeEvent(input$GasVelRange,{
@@ -218,7 +221,7 @@ getmode <<- function(v) {
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
 
-plotgalimage <<- function(MAGPIID, miniimpath='mini-images'){
+plotgalimage <<- function(MAGPIID, miniimpath=miniimpath){
   miniimfile=paste0(miniimpath,'/MAGPI',MAGPIID,'_mini-images.fits')
   miniimdata=Rfits_read_all(miniimfile)
   
@@ -240,15 +243,14 @@ plotgalimage <<- function(MAGPIID, miniimpath='mini-images'){
   
   #synthetic colour image
   magimageRGB(R=miniimdata$IDATA$imDat,G=miniimdata$RDATA$imDat,B=miniimdata$GDATA$imDat,axes=F,margins=F)
-  #magimageWCSRGB(R=miniimdata$IDATA,G=miniimdata$RDATA,B=miniimdata$GDATA,coord.axis='auto',margins=F)
   
   plotrix::draw.circle(x=dim(mask)[1]-.8*max(dim(mask)),y=dim(mask)[2]-.8*max(dim(mask)),radius=0.5*fwhm/pixscale, border='white', col=NaN, lwd=3, lty=1)
   plotrix::draw.ellipse(x=xcen,y=ycen,a=re/sqrt(1-eps)/pixscale,b=re*sqrt(1-eps)/pixscale,angle=pa+90, deg=T, border='red', col=NaN, lwd=2)
   
 }
 
-plotstelmaps <<- function(MAGPIID, stelkinpath='StellKinMaps', 
-                           miniimpath='mini-images', velrange=NULL,sigrange=NULL){
+plotstelmaps <<- function(MAGPIID, stelkinpath=stelkinpath, 
+                           miniimpath=miniimpath, velrange=NULL,sigrange=NULL){
   stelfile=paste0(stelkinpath,'/',MAGPIID,'_kinematics_ppxf-maps.fits')
   miniimfile=paste0(miniimpath,'/MAGPI',MAGPIID,'_mini-images.fits')
   if (file.exists(stelfile)){
@@ -322,7 +324,7 @@ plotstelmaps <<- function(MAGPIID, stelkinpath='StellKinMaps',
   }
 }
 
-plotgasmaps <<- function(MAGPIID, gaskinpath='GasKinMaps',miniimpath='mini-images', velrange=NULL, sigrange=NULL,sncut=3){
+plotgasmaps <<- function(MAGPIID, gaskinpath=gaskinpath,miniimpath=miniimpath, velrange=NULL, sigrange=NULL,sncut=3){
   
   gasfile=paste0(gaskinpath,'/MAGPI',MAGPIID,'_GIST_EmissionLines.fits')
   miniimfile=paste0(miniimpath,'/MAGPI',MAGPIID,'_mini-images.fits')
