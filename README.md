@@ -1,8 +1,11 @@
 MAGPIClassApp
 
 Purpose: Shiny app for MAGPI visual classification
+
 Author: Caroline Foster (c.foster@unsw.edu.au)
+
 Coding language: R
+
 Not included: mini-images, StellKinMaps and GasKinMaps files for space and proprietary reasons.
 
 Note from the author: You are welcome to use the code herein as a basis for creating your own application. If you have found this useful, we would be grateful for an acknowledgement.
@@ -11,11 +14,11 @@ Working version of the app is deployed at https://shiny.datacentral.org.au/magpi
 
 Dependencies: 
 
-shiny (available on CRAN)
-shinyjs (available on CRAN)
-Rfits (https://github.com/asgr/Rfits)
-magicaxis (https://github.com/asgr/magicaxis)
-jpeg (available on CRAN)
+shiny (available on CRAN),
+shinyjs (available on CRAN),
+Rfits (https://github.com/asgr/Rfits),
+magicaxis (https://github.com/asgr/magicaxis),
+jpeg (available on CRAN), and
 rdrop2 (https://github.com/karthik/rdrop2)
 
 Set paths to data and output directory in www/paths.R file.
