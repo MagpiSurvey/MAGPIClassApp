@@ -13,7 +13,6 @@ Note from the author: You are welcome to use the code herein as a basis for crea
 Working version of the app is deployed at https://shiny.datacentral.org.au/magpiclassapp/
 
 Dependencies: 
-
 shiny (available on CRAN),
 shinyjs (available on CRAN),
 Rfits (https://github.com/asgr/Rfits),
@@ -26,4 +25,5 @@ Set paths to data and output directory in www/paths.R file.
 To setup dropbox token using rdrop2, run the following 2 lines first to connect to dropbox account and keep your token safe: 
 tokenfile='path/and/name/of/tokenfile'
 token <- drop_auth()
+#Note, tokens get automatically disabled after 4 hours (new dropbox policy), to get permanency, try the fix(es) described at https://github.com/karthik/rdrop2/issues/201
 saveRDS(token, tokenfile)
